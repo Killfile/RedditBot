@@ -8,67 +8,94 @@
 
     using RedditSharp;
     using RedditSharp.Things;
+    using RedditCommentBot.RedditAPI;
 
     public class RedditCommentReplyBot
     {
-        private readonly Reddit reddit = new Reddit();
+        private const string SubRedditPrefix = "/r/";
+        private readonly IRedditAPI reddit;
         private readonly List<string> commentIds = new List<string>();
-        private readonly string botTempPath;
-        private readonly string username;
-        private readonly string password;
 
+        private BotConfig config;
+        
         private readonly ICommentReplyGenerator replyGenerator;
 
-        public RedditCommentReplyBot(string username, string password, string botTempPath, ICommentReplyGenerator replyGenerator)
+        public RedditCommentReplyBot(BotConfig config, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
         {
-            this.username = username;
-            this.password = password;
-            this.botTempPath = botTempPath;
+            this.config = config;
             this.replyGenerator = replyGenerator;
+            this.reddit = reddit;
         }
 
         private string CommentIdFilePath
         {
             get
             {
-                return Path.Combine(this.botTempPath, "processedComments.txt");
+                return Path.Combine(this.config.TempPath, "processedComments.txt");
             }
         }
 
-        public void ListenForPrompt(string triggerPhrase)
+        public void ListenForPrompt(string triggerPhrase, string targetSubreddit)
         {
             if (!HasLoggedIn()) return;
 
-            var subreddit = reddit.GetSubreddit("/r/learnprogramming");
+            var subreddit = GetSubReddit(targetSubreddit);
+
+            List<DeferredCommentReply> replies = TryGenerateRepliesOnNewestPosts(triggerPhrase, subreddit);
+
+            ProcessReplies(replies);
+        }
+
+        private void ProcessReplies(List<DeferredCommentReply> toPost)
+        {
+            foreach (var reply in toPost)
+            {
+                reply.Post();
+                AddIdToList(reply.ParentCommentID);
+                WriteIdsToFile();
+                Thread.Sleep(5000);
+            }
+        }
+
+        private List<DeferredCommentReply> TryGenerateRepliesOnNewestPosts(string triggerPhrase, Subreddit subreddit)
+        {
+            List<DeferredCommentReply> toPost = new List<DeferredCommentReply>();
             foreach (var post in subreddit.New.Take(25))
             {
                 Console.WriteLine("THREAD : {0}", post.Title);
                 try
                 {
-                    IEnumerable<Comment> toProcess = post.Comments.Where(c => !commentIds.Contains(c.Id) && c.Body.Contains(triggerPhrase));
-                    var enumeratedList = toProcess as IList<Comment> ?? toProcess.ToList();
-                    var toPost = replyGenerator.ReplyToComments(enumeratedList);
-
-                    foreach (var reply in toPost)
-                    {
-                        reply.Post();
-                        AddIdToList(reply.ParentCommentID);
-                        WriteIdsToFile();
-                        Thread.Sleep(5000);
-                    }
+                    toPost.AddRange(GenerateRepliesToPostComments(triggerPhrase, post));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("exception: {0}", ex.Message);
+                    Console.WriteLine("exception generating replies: {0}", ex.Message);
                 }
             }
+            return toPost;
+        }
+
+        private IEnumerable<DeferredCommentReply> GenerateRepliesToPostComments(string triggerPhrase, Post post)
+        {
+                IEnumerable<Comment> toProcess = post.Comments.Where(c => !commentIds.Contains(c.Id) && c.Body.Contains(triggerPhrase));
+                var enumeratedList = toProcess as IList<Comment> ?? toProcess.ToList();
+                return replyGenerator.ReplyToComments(enumeratedList);   
+        }
+
+        private Subreddit GetSubReddit(string targetSubreddit)
+        {
+            if (!targetSubreddit.StartsWith(SubRedditPrefix))
+                targetSubreddit = SubRedditPrefix + targetSubreddit;
+
+            var subreddit = reddit.GetSubreddit(targetSubreddit);
+            return subreddit;
         }
 
         private bool HasLoggedIn()
         {
             try
             {
-                this.reddit.LogIn(this.username, this.password);
+                this.reddit.LogIn(this.config.UserName, this.config.Password);
                 Console.WriteLine("User logged in");
                 return true;
             }

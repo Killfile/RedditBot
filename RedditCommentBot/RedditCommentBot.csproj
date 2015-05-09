@@ -49,13 +49,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BotConfig.cs" />
     <Compile Include="DeferredCommentReply.cs" />
     <Compile Include="ICommentReplyGenerator.cs" />
+    <Compile Include="RedditAPI\IRedditAPI.cs" />
+    <Compile Include="RedditAPI\RedditAPIImpl.cs" />
     <Compile Include="RedditCommentReplyBot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
