@@ -11,10 +11,12 @@ namespace RedditCommentBotTests.TestBase
     public class AutoFixtureTest
     {
         protected Fixture autoFixture;
+
         [SetUp]
         public void Setup()
         {
             autoFixture = new Fixture();
+            
         }
     }
 }

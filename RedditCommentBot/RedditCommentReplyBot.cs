@@ -12,20 +12,21 @@
 
     public class RedditCommentReplyBot
     {
-        private const string SubRedditPrefix = "/r/";
+       
         private readonly IRedditAPI reddit;
         private readonly List<string> commentIds = new List<string>();
         private Gatekeeper gatekeeper;
         private BotConfig config;
-        
+        private SubredditDirectory directory;
         private readonly ICommentReplyGenerator replyGenerator;
 
-        public RedditCommentReplyBot(BotConfig config, Gatekeeper gatekeeper, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
+        public RedditCommentReplyBot(BotConfig config, Gatekeeper gatekeeper, SubredditDirectory directory, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
         {
             this.config = config;
             this.replyGenerator = replyGenerator;
             this.reddit = reddit;
             this.gatekeeper = gatekeeper;
+            this.directory = directory;
         }
 
         private string CommentIdFilePath
@@ -40,7 +41,7 @@
         {
             if (!gatekeeper.IsUserLoggedIn()) return;
 
-            var subreddit = GetSubReddit(targetSubreddit);
+            var subreddit = directory.GetSubReddit(targetSubreddit);
 
             List<DeferredCommentReply> replies = TryGenerateRepliesOnNewestPosts(triggerPhrase, subreddit);
 
@@ -66,7 +67,9 @@
                 Console.WriteLine("THREAD : {0}", post.Title);
                 try
                 {
-                    toPost.AddRange(GenerateRepliesToPostComments(triggerPhrase, post));
+                    var enumeratedList = GetCommentsForReply(triggerPhrase, post);
+                    var replies = replyGenerator.ReplyToComments(enumeratedList); 
+                    toPost.AddRange(replies);
                 }
                 catch (Exception ex)
                 {
@@ -76,21 +79,15 @@
             return toPost;
         }
 
-        private IEnumerable<DeferredCommentReply> GenerateRepliesToPostComments(string triggerPhrase, Post post)
+
+        private IList<Comment> GetCommentsForReply(string triggerPhrase, Post post)
         {
-                IEnumerable<Comment> toProcess = post.Comments.Where(c => !commentIds.Contains(c.Id) && c.Body.Contains(triggerPhrase));
-                var enumeratedList = toProcess as IList<Comment> ?? toProcess.ToList();
-                return replyGenerator.ReplyToComments(enumeratedList);   
+            IEnumerable<Comment> toProcess = post.Comments.Where(c => !commentIds.Contains(c.Id) && c.Body.Contains(triggerPhrase));
+            var enumeratedList = toProcess as IList<Comment> ?? toProcess.ToList();
+            return enumeratedList;
         }
 
-        private Subreddit GetSubReddit(string targetSubreddit)
-        {
-            if (!targetSubreddit.StartsWith(SubRedditPrefix))
-                targetSubreddit = SubRedditPrefix + targetSubreddit;
-
-            var subreddit = reddit.GetSubreddit(targetSubreddit);
-            return subreddit;
-        }
+        
 
         
 
