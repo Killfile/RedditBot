@@ -15,16 +15,17 @@
         private const string SubRedditPrefix = "/r/";
         private readonly IRedditAPI reddit;
         private readonly List<string> commentIds = new List<string>();
-
+        private Gatekeeper gatekeeper;
         private BotConfig config;
         
         private readonly ICommentReplyGenerator replyGenerator;
 
-        public RedditCommentReplyBot(BotConfig config, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
+        public RedditCommentReplyBot(BotConfig config, Gatekeeper gatekeeper, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
         {
             this.config = config;
             this.replyGenerator = replyGenerator;
             this.reddit = reddit;
+            this.gatekeeper = gatekeeper;
         }
 
         private string CommentIdFilePath
@@ -37,7 +38,7 @@
 
         public void ListenForPrompt(string triggerPhrase, string targetSubreddit)
         {
-            if (!HasLoggedIn()) return;
+            if (!gatekeeper.IsUserLoggedIn()) return;
 
             var subreddit = GetSubReddit(targetSubreddit);
 
@@ -91,20 +92,7 @@
             return subreddit;
         }
 
-        private bool HasLoggedIn()
-        {
-            try
-            {
-                this.reddit.LogIn(this.config.UserName, this.config.Password);
-                Console.WriteLine("User logged in");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return false;
-            }
-        }
+        
 
         private void AddIdToList(string commentId)
         {
