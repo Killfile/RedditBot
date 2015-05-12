@@ -57,6 +57,7 @@
     <Compile Include="RedditAPI\RedditAPIImpl.cs" />
     <Compile Include="RedditCommentReplyBot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReplyHistorian.cs" />
     <Compile Include="SubredditDirectory.cs" />
   </ItemGroup>
   <ItemGroup>

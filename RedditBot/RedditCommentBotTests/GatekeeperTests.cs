@@ -27,6 +27,12 @@ namespace RedditCommentBot.Tests
         }
 
         [Test]
+        public void GatekeeperTests_SetupCompleted()
+        {
+            Assert.Pass();
+        }
+
+        [Test]
         public void WhenIsUserLoggedInCalledForTheFirstTime_LoginIsCalledOnAPI() {
             gatekeeper.IsUserLoggedIn();
             mockAPI.Verify(m=>m.LogIn(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()));

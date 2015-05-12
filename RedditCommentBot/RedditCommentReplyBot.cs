@@ -14,31 +14,30 @@
     {
        
         private readonly IRedditAPI reddit;
-        private readonly List<string> commentIds = new List<string>();
+        private List<string> commentIds = new List<string>();
         private Gatekeeper gatekeeper;
         private BotConfig config;
         private SubredditDirectory directory;
         private readonly ICommentReplyGenerator replyGenerator;
+        private readonly ReplyHistorian historian;
 
-        public RedditCommentReplyBot(BotConfig config, Gatekeeper gatekeeper, SubredditDirectory directory, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
+        public RedditCommentReplyBot(BotConfig config, Gatekeeper gatekeeper, SubredditDirectory directory, ReplyHistorian historian, ICommentReplyGenerator replyGenerator, IRedditAPI reddit)
         {
             this.config = config;
             this.replyGenerator = replyGenerator;
             this.reddit = reddit;
             this.gatekeeper = gatekeeper;
             this.directory = directory;
+            this.historian = historian;
+            historian.Init();
         }
 
-        private string CommentIdFilePath
-        {
-            get
-            {
-                return Path.Combine(this.config.TempPath, "processedComments.txt");
-            }
-        }
+      
 
         public void ListenForPrompt(string triggerPhrase, string targetSubreddit)
         {
+            
+
             if (!gatekeeper.IsUserLoggedIn()) return;
 
             var subreddit = directory.GetSubReddit(targetSubreddit);
@@ -48,13 +47,15 @@
             ProcessReplies(replies);
         }
 
+        
+
         private void ProcessReplies(List<DeferredCommentReply> toPost)
         {
             foreach (var reply in toPost)
             {
                 reply.Post();
                 AddIdToList(reply.ParentCommentID);
-                WriteIdsToFile();
+                historian.WriteIds();
                 Thread.Sleep(5000);
             }
         }
@@ -82,7 +83,7 @@
 
         private IList<Comment> GetCommentsForReply(string triggerPhrase, Post post)
         {
-            IEnumerable<Comment> toProcess = post.Comments.Where(c => !commentIds.Contains(c.Id) && c.Body.Contains(triggerPhrase));
+            IEnumerable<Comment> toProcess = post.Comments.Where(c => !historian.LogContains(c.Id) && c.Body.Contains(triggerPhrase));
             var enumeratedList = toProcess as IList<Comment> ?? toProcess.ToList();
             return enumeratedList;
         }
@@ -99,15 +100,6 @@
             }
         }
 
-        private void WriteIdsToFile()
-        {
-            using (var file = new StreamWriter(this.CommentIdFilePath))
-            {
-                foreach (string commentId in commentIds)
-                {
-                    file.Write(" {0}", commentId);
-                }
-            }
-        }
+        
     }
 }
