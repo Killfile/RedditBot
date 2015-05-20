@@ -51,20 +51,29 @@
   <ItemGroup>
     <Compile Include="BotConfig.cs" />
     <Compile Include="DeferredCommentReply.cs" />
-    <Compile Include="Gatekeeper.cs" />
+    <Compile Include="Authentication\Gatekeeper.cs" />
     <Compile Include="ICommentReplyGenerator.cs" />
     <Compile Include="RedditAPI\IRedditAPI.cs" />
     <Compile Include="RedditAPI\RedditAPIImpl.cs" />
     <Compile Include="RedditCommentReplyBot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReplyHistorian.cs" />
-    <Compile Include="SubredditDirectory.cs" />
+    <Compile Include="History\ReplyHistory.cs" />
+    <Compile Include="History\Historian.cs" />
+    <Compile Include="Streams\Impl\StreamReaderImpl.cs" />
+    <Compile Include="Streams\Impl\StreamWriterImpl.cs" />
+    <Compile Include="Streams\Interfaces\IStreamReader.cs" />
+    <Compile Include="Streams\Interfaces\IStreamWriter.cs" />
+    <Compile Include="Streams\StreamFactory.cs" />
+    <Compile Include="Directory\SubredditDirectory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Browser\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
